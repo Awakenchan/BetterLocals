@@ -77,7 +77,7 @@ getgenv().LocalPlayer = LPH_JIT_MAX(function()
     return Players.LocalPlayer
 end)
 getgenv().Character = LPH_JIT_MAX(function()
-    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return LocalPlayer().Character or LocalPlayer().CharacterAdded:Wait()
 end)
 
 getgenv().HumanoidRootPart = LPH_JIT_MAX(function()
