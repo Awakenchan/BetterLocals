@@ -43,7 +43,7 @@ if not LPH_OBFUSCATED then
         assert(#{...} == 0, "LPH_CRASH does not accept any arguments.")
     end
 end;
-
+local Class,Default = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV2/refs/heads/main/Utility/Data2Code%40Amity.lua"))()
 getgenv().SafeService = setmetatable({}, {
     __index = function(self, name)
         local service
