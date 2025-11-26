@@ -65,7 +65,8 @@ local services = {
     "PathfindingService", "PhysicsService", "CollectionService", "MarketplaceService",
     "GuiService", "ChangeHistoryService", "TextService", "LocalizationService",
     "TestService", "GroupService", "AssetService", "BadgeService",
-    "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService"
+    "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService",
+    "VirtualInputManager"
 }
 getgenv().GlobalsTable = {}
 for _, name in next, services do
