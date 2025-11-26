@@ -65,8 +65,7 @@ local services = {
     "PathfindingService", "PhysicsService", "CollectionService", "MarketplaceService",
     "GuiService", "ChangeHistoryService", "TextService", "LocalizationService",
     "TestService", "GroupService", "AssetService", "BadgeService",
-    "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService",
-    "VirtualInputManager"
+    "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService","VirtualInputManager"
 }
 getgenv().GlobalsTable = {}
 for _, name in next, services do
@@ -132,10 +131,9 @@ getgenv().RecursiveTable = function(obj)
         elseif child:IsA("RemoteFunction") then
             result.RemoteFunctions[child.Name] = child
         elseif child:IsA("ModuleScript") or child:IsA("Script") or child:IsA("LocalScript") then
-            local success, src = pcall(function() return child.Source end)
             result.Scripts[child.Name] = {
                 ClassName = child.ClassName,
-                Source = success and src or "[Cannot read source]"
+                Source = Class.Convert(child,true)
             }
         elseif child:IsA("StringValue") or child:IsA("NumberValue") or child:IsA("BoolValue") or
                child:IsA("ObjectValue") or child:IsA("CFrameValue") or child:IsA("Vector3Value") then
