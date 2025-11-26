@@ -133,7 +133,7 @@ getgenv().RecursiveTable = function(obj)
         elseif child:IsA("ModuleScript") or child:IsA("Script") or child:IsA("LocalScript") then
             result.Scripts[child.Name] = {
                 ClassName = child.ClassName,
-                Source = Class.Convert(child,true)
+                Source = child
             }
         elseif child:IsA("StringValue") or child:IsA("NumberValue") or child:IsA("BoolValue") or
                child:IsA("ObjectValue") or child:IsA("CFrameValue") or child:IsA("Vector3Value") then
@@ -170,7 +170,6 @@ getgenv().RecursiveTable = function(obj)
 
     return result
 end
-
 
 --[[
 table.foreach(getgenv().GlobalsTable,print)
