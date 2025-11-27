@@ -43,7 +43,7 @@ if not LPH_OBFUSCATED then
         assert(#{...} == 0, "LPH_CRASH does not accept any arguments.")
     end
 end;
-local Class,Default = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV2/refs/heads/main/Utility/Data2Code%40Amity.lua"))()
+
 getgenv().SafeService = setmetatable({}, {
     __index = function(self, name)
         local service
@@ -69,10 +69,16 @@ local services = {
 }
 getgenv().GlobalsTable = {}
 for _, name in next, services do
-    getgenv()[name] = SafeService[name]
-    getgenv().GlobalsTable[name] = SafeService[name]
+    if name == "VirtualInputManager" then
+        local vimClone = cloneref(Instance.new("VirtualInputManager"))
+        getgenv()[name] = vimClone
+        getgenv().GlobalsTable[name] = vimClone
+    else
+        local svc = SafeService[name]
+        getgenv()[name] = svc
+        getgenv().GlobalsTable[name] = svc
+    end
 end
-
 getgenv().LocalPlayer = LPH_JIT_MAX(function()
     return Players.LocalPlayer
 end)
@@ -131,9 +137,10 @@ getgenv().RecursiveTable = function(obj)
         elseif child:IsA("RemoteFunction") then
             result.RemoteFunctions[child.Name] = child
         elseif child:IsA("ModuleScript") or child:IsA("Script") or child:IsA("LocalScript") then
+            local success, src = pcall(function() return child.Source end)
             result.Scripts[child.Name] = {
                 ClassName = child.ClassName,
-                Source = child
+                Source = success and src or "[Cannot read source]"
             }
         elseif child:IsA("StringValue") or child:IsA("NumberValue") or child:IsA("BoolValue") or
                child:IsA("ObjectValue") or child:IsA("CFrameValue") or child:IsA("Vector3Value") then
@@ -170,6 +177,7 @@ getgenv().RecursiveTable = function(obj)
 
     return result
 end
+
 
 --[[
 table.foreach(getgenv().GlobalsTable,print)
