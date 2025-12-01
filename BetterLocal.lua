@@ -65,7 +65,8 @@ local services = {
     "PathfindingService", "PhysicsService", "CollectionService", "MarketplaceService",
     "GuiService", "ChangeHistoryService", "TextService", "LocalizationService",
     "TestService", "GroupService", "AssetService", "BadgeService",
-    "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService","VirtualInputManager","ContentProvider"
+    "PointsService", "AnalyticsService","ProximityPromptService",
+    "VirtualInputManager","ContentProvider"
 }
 getgenv().GlobalsTable = {}
 for _, name in next, services do
@@ -80,7 +81,7 @@ for _, name in next, services do
     end
 end
 getgenv().LocalPlayer = LPH_JIT_MAX(function()
-    return Players.LocalPlayer
+    return cloneref(Players.LocalPlayer)
 end)
 getgenv().Character = LPH_JIT_MAX(function()
     return LocalPlayer().Character or LocalPlayer().CharacterAdded:Wait()
