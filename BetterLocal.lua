@@ -1,3 +1,105 @@
+if not LPH_OBFUSCATED then
+    local assert = assert
+    local type = type
+    local setfenv = setfenv
+
+    LPH_ENCNUM = function(toEncrypt, ...)
+        assert(type(toEncrypt) == "number" and #{...} == 0, "LPH_ENCNUM only accepts a single constant double or integer as an argument.")
+        return toEncrypt
+    end
+    LPH_NUMENC = LPH_ENCNUM
+
+    LPH_ENCSTR = function(toEncrypt, ...)
+        assert(type(toEncrypt) == "string" and #{...} == 0, "LPH_ENCSTR only accepts a single constant string as an argument.")
+        return toEncrypt
+    end
+    LPH_STRENC = LPH_ENCSTR
+
+    LPH_ENCFUNC = function(toEncrypt, encKey, decKey, ...)
+        -- not checking decKey value since this shim is meant to be used without obfuscation/whitelisting
+        assert(type(toEncrypt) == "function" and type(encKey) == "string" and #{...} == 0, "LPH_ENCFUNC accepts a constant function, constant string, and string variable as arguments.")
+        return toEncrypt
+    end
+    LPH_FUNCENC = LPH_ENCFUNC
+
+    LPH_JIT = function(f, ...)
+        assert(type(f) == "function" and #{...} == 0, "LPH_JIT only accepts a single constant function as an argument.")
+        return f
+    end
+    LPH_JIT_MAX = LPH_JIT
+
+    LPH_NO_VIRTUALIZE = function(f, ...)
+        assert(type(f) == "function" and #{...} == 0, "LPH_NO_VIRTUALIZE only accepts a single constant function as an argument.")
+        return f
+    end
+
+    LPH_NO_UPVALUES = function(f, ...)
+        assert(type(setfenv) == "function", "LPH_NO_UPVALUES can only be used on Lua versions with getfenv & setfenv")
+        assert(type(f) == "function" and #{...} == 0, "LPH_NO_UPVALUES only accepts a single constant function as an argument.")
+        return f
+    end
+
+    LPH_CRASH = function(...)
+        assert(#{...} == 0, "LPH_CRASH does not accept any arguments.")
+    end
+end;
+local Class,Default = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV2/refs/heads/main/Utility/Data2Code%40Amity.lua"))()
+getgenv().SafeService = setmetatable({}, {
+    __index = function(self, name)
+        local service
+        xpcall(function()
+            service = cloneref(game:GetService(name))
+        end, function(rr) print(rr) end) 
+        if service then
+            rawset(self, name, service)
+            return service
+        end
+        return nil
+    end
+})
+local services = {
+    "Players", "Workspace", "ReplicatedStorage", "ReplicatedFirst",
+    "Lighting", "UserInputService", "RunService", "TweenService", "HttpService",
+    "CoreGui", "InsertService", "Debris", "SoundService",
+    "ContextActionService", "StarterGui", "StarterPack", "Teams", "Chat",
+    "PathfindingService", "PhysicsService", "CollectionService", "MarketplaceService",
+    "GuiService", "ChangeHistoryService", "TextService", "LocalizationService",
+    "TestService", "GroupService", "AssetService", "BadgeService",
+    "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService","VirtualInputManager"
+}
+getgenv().GlobalsTable = {}
+for _, name in next, services do
+    getgenv()[name] = SafeService[name]
+    getgenv().GlobalsTable[name] = SafeService[name]
+end
+
+getgenv().LocalPlayer = LPH_JIT_MAX(function()
+    return Players.LocalPlayer
+end)
+getgenv().Character = LPH_JIT_MAX(function()
+    return LocalPlayer().Character or LocalPlayer().CharacterAdded:Wait()
+end)
+
+getgenv().HumanoidRootPart = LPH_JIT_MAX(function()
+    local char = Character()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end)
+
+getgenv().Humanoid = LPH_JIT_MAX(function()
+    local char = Character()
+    return char and char:FindFirstChildOfClass("Humanoid")
+end)
+getgenv().CharacterPart = setmetatable({}, {
+    __index = function(self, partName)
+        local f = LPH_JIT_MAX(function()
+            local char = Character()
+            return char and char:FindFirstChild(partName)
+        end)
+        rawset(self, partName, f)
+        return f
+    end
+})
+
 getgenv().RecursiveTable = function(obj)
     local result = {
         Instance = obj,
