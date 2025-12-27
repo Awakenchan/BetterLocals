@@ -68,7 +68,7 @@ local services = {
     "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService","VirtualInputManager"
 }
 getgenv().GlobalsTable = {}
-for _, name in next, serviceList do
+for _, name in next, services do
     if name == "VirtualInputManager" then
         local vim = cloneref(Instance.new("VirtualInputManager"))
         getgenv()[name] = vim
