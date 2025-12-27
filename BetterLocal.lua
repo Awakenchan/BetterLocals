@@ -68,9 +68,16 @@ local services = {
     "MessagingService", "PointsService", "AnalyticsService","ProximityPromptService","VirtualInputManager"
 }
 getgenv().GlobalsTable = {}
-for _, name in next, services do
-    getgenv()[name] = SafeService[name]
-    getgenv().GlobalsTable[name] = SafeService[name]
+for _, name in next, serviceList do
+    if name == "VirtualInputManager" then
+        local vim = cloneref(Instance.new("VirtualInputManager"))
+        getgenv()[name] = vim
+        GlobalsTable[name] = vim
+    else
+        local svc = SafeService[name]
+        getgenv()[name] = svc
+        GlobalsTable[name] = svc
+    end
 end
 
 getgenv().LocalPlayer = LPH_JIT_MAX(function()
