@@ -43,7 +43,7 @@ if not LPH_OBFUSCATED then
     end
 end
 
-local Class = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV2/refs/heads/main/Utility/Data2Code%40Amity.lua"))()
+local Class = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV3/refs/heads/main/Utility/Data2Code.luau"))()
 
 local SafeService = setmetatable({}, {
     __index = function(self, name)
