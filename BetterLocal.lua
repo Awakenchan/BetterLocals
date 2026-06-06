@@ -76,8 +76,7 @@ local GlobalsTable = {}
 
 for _, name in Services do
     if name == "VirtualInputManager" then
-        local vim = cloneref(Instance.new("VirtualInputManager"))
-        GlobalsTable[name] = vim
+        GlobalsTable[name] = cloneref(Instance.new("VirtualInputManager"))
     else
         GlobalsTable[name] = SafeService[name]
     end
@@ -114,6 +113,21 @@ local CharacterPart = setmetatable({}, {
     end
 })
 
+local ValueClasses = {
+    StringValue = true,
+    NumberValue = true,
+    BoolValue = true,
+    ObjectValue = true,
+    CFrameValue = true,
+    Vector3Value = true
+}
+
+local ScriptClasses = {
+    ModuleScript = true,
+    Script = true,
+    LocalScript = true
+}
+
 local function RecursiveTable(obj)
     local result = {
         Instance = obj,
@@ -136,88 +150,94 @@ local function RecursiveTable(obj)
         ParticleEmitters = {},
         Tools = {},
 
-        _connections = {}
+        _connections = {},
+        _placement = {}
     }
 
     if typeof(obj) ~= "Instance" then
         return result
     end
 
-    local function classify(child)
-        if child:IsA("Folder") then
-            result.Folders[child.Name] = RecursiveTable(child)
+    local Direct = {
+        RemoteEvent = "RemoteEvents",
+        RemoteFunction = "RemoteFunctions",
+        TextLabel = "TextLabels",
+        TextButton = "TextButtons",
+        WeldConstraint = "WeldConstraints",
+        HingeConstraint = "HingeConstraints",
+        Sound = "Sounds",
+        Animation = "Animations",
+        ParticleEmitter = "ParticleEmitters",
+        Tool = "Tools"
+    }
 
-        elseif child:IsA("RemoteEvent") then
-            result.RemoteEvents[child.Name] = child
+    local Nested = {
+        Folder = "Folders",
+        Model = "Models",
+        ScreenGui = "ScreenGuis",
+        Frame = "Frames"
+    }
 
-        elseif child:IsA("RemoteFunction") then
-            result.RemoteFunctions[child.Name] = child
+    local PartFallback = { "Part", "MeshPart", "UnionOperation" }
 
-        elseif child:IsA("ModuleScript") or child:IsA("Script") or child:IsA("LocalScript") then
-            result.Scripts[child.Name] = {
-                ClassName = child.ClassName,
+    local function place(child, category, value)
+        result[category][child.Name] = value
+        result._placement[child] = category
+    end
+
+    local function unplace(child)
+        local category = result._placement[child]
+        if category and result[category] then
+            result[category][child.Name] = nil
+        end
+        result._placement[child] = nil
+    end
+
+    local classify
+
+    local function store(child)
+        local cls = child.ClassName
+
+        local direct = Direct[cls]
+        if direct then
+            return place(child, direct, child)
+        end
+
+        local nested = Nested[cls]
+        if nested then
+            return place(child, nested, RecursiveTable(child))
+        end
+
+        if ScriptClasses[cls] then
+            return place(child, "Scripts", {
+                ClassName = cls,
                 Source = Class.Convert(child, true)
-            }
+            })
+        end
 
-        elseif child:IsA("StringValue") or child:IsA("NumberValue")
-            or child:IsA("BoolValue") or child:IsA("ObjectValue")
-            or child:IsA("CFrameValue") or child:IsA("Vector3Value") then
-
+        if ValueClasses[cls] then
             local v = {
-                ClassName = child.ClassName,
+                ClassName = cls,
                 Instance = child,
                 Value = child.Value
             }
-
             v._conn = child:GetPropertyChangedSignal("Value"):Connect(function()
                 v.Value = child.Value
             end)
-
-            result.Values[child.Name] = v
-
-        elseif child:IsA("Part") or child:IsA("MeshPart") or child:IsA("UnionOperation") then
-            result.Parts[child.Name] = child
-
-        elseif child:IsA("Model") then
-            result.Models[child.Name] = RecursiveTable(child)
-
-        elseif child:IsA("ScreenGui") then
-            result.ScreenGuis[child.Name] = RecursiveTable(child)
-
-        elseif child:IsA("Frame") then
-            result.Frames[child.Name] = RecursiveTable(child)
-
-        elseif child:IsA("TextLabel") then
-            result.TextLabels[child.Name] = child
-
-        elseif child:IsA("TextButton") then
-            result.TextButtons[child.Name] = child
-
-        elseif child:IsA("WeldConstraint") then
-            result.WeldConstraints[child.Name] = child
-
-        elseif child:IsA("HingeConstraint") then
-            result.HingeConstraints[child.Name] = child
-
-        elseif child:IsA("Sound") then
-            result.Sounds[child.Name] = child
-
-        elseif child:IsA("Animation") then
-            result.Animations[child.Name] = child
-
-        elseif child:IsA("ParticleEmitter") then
-            result.ParticleEmitters[child.Name] = child
-
-        elseif child:IsA("Tool") then
-            result.Tools[child.Name] = child
+            return place(child, "Values", v)
         end
 
-        result._connections[child] = child:GetPropertyChangedSignal("Name"):Connect(function()
-            for _, cat in result do
-                if type(cat) == "table" then
-                    cat[child.Name] = nil
-                end
+        for _, partClass in PartFallback do
+            if child:IsA(partClass) then
+                return place(child, "Parts", child)
             end
+        end
+    end
+
+    classify = function(child)
+        store(child)
+        result._connections[child] = child:GetPropertyChangedSignal("Name"):Connect(function()
+            unplace(child)
             classify(child)
         end)
     end
@@ -229,11 +249,7 @@ local function RecursiveTable(obj)
     result._connections.ChildAdded = obj.ChildAdded:Connect(classify)
 
     result._connections.ChildRemoved = obj.ChildRemoved:Connect(function(child)
-        for _, cat in result do
-            if type(cat) == "table" then
-                cat[child.Name] = nil
-            end
-        end
+        unplace(child)
         if result._connections[child] then
             result._connections[child]:Disconnect()
             result._connections[child] = nil
