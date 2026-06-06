@@ -16,7 +16,6 @@ if not LPH_OBFUSCATED then
     LPH_STRENC = LPH_ENCSTR
 
     LPH_ENCFUNC = function(toEncrypt, encKey, decKey, ...)
-        -- not checking decKey value since this shim is meant to be used without obfuscation/whitelisting
         assert(type(toEncrypt) == "function" and type(encKey) == "string" and #{...} == 0, "LPH_ENCFUNC accepts a constant function, constant string, and string variable as arguments.")
         return toEncrypt
     end
@@ -42,14 +41,18 @@ if not LPH_OBFUSCATED then
     LPH_CRASH = function(...)
         assert(#{...} == 0, "LPH_CRASH does not accept any arguments.")
     end
-end;
-local Class,Default = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV2/refs/heads/main/Utility/Data2Code%40Amity.lua"))()
-getgenv().SafeService = setmetatable({}, {
+end
+
+local Class = loadstring(game:HttpGet("https://raw.githubusercontent.com/Awakenchan/GcViewerV2/refs/heads/main/Utility/Data2Code%40Amity.lua"))()
+
+local SafeService = setmetatable({}, {
     __index = function(self, name)
         local service
         xpcall(function()
             service = cloneref(game:GetService(name))
-        end, function(rr) print(rr) end) 
+        end, function(err)
+            print(err)
+        end)
         if service then
             rawset(self, name, service)
             return service
@@ -57,46 +60,50 @@ getgenv().SafeService = setmetatable({}, {
         return nil
     end
 })
-local services = {
+
+local Services = {
     "Players", "Workspace", "ReplicatedStorage", "ReplicatedFirst",
     "Lighting", "UserInputService", "RunService", "TweenService", "HttpService",
     "CoreGui", "InsertService", "Debris", "SoundService",
     "ContextActionService", "StarterGui", "StarterPack", "Teams", "Chat",
     "PathfindingService", "PhysicsService", "CollectionService", "MarketplaceService",
     "GuiService", "TextService", "LocalizationService",
-    "GroupService","ProximityPromptService","VirtualInputManager",
+    "GroupService", "ProximityPromptService", "VirtualInputManager",
     "ContentProvider"
 }
-getgenv().GlobalsTable = {}
-for _, name in next, services do
+
+local GlobalsTable = {}
+
+for _, name in Services do
     if name == "VirtualInputManager" then
         local vim = cloneref(Instance.new("VirtualInputManager"))
-        getgenv()[name] = vim
         GlobalsTable[name] = vim
     else
-        local svc = SafeService[name]
-        getgenv()[name] = svc
-        GlobalsTable[name] = svc
+        GlobalsTable[name] = SafeService[name]
     end
 end
 
-getgenv().LocalPlayer = LPH_JIT_MAX(function()
+local Players = GlobalsTable.Players
+
+local LocalPlayer = LPH_JIT_MAX(function()
     return Players.LocalPlayer
 end)
-getgenv().Character = LPH_JIT_MAX(function()
+
+local Character = LPH_JIT_MAX(function()
     return LocalPlayer().Character or LocalPlayer().CharacterAdded:Wait()
 end)
 
-getgenv().HumanoidRootPart = LPH_JIT_MAX(function()
+local HumanoidRootPart = LPH_JIT_MAX(function()
     local char = Character()
     return char and char:FindFirstChild("HumanoidRootPart")
 end)
 
-getgenv().Humanoid = LPH_JIT_MAX(function()
+local Humanoid = LPH_JIT_MAX(function()
     local char = Character()
     return char and char:FindFirstChildOfClass("Humanoid")
 end)
-getgenv().CharacterPart = setmetatable({}, {
+
+local CharacterPart = setmetatable({}, {
     __index = function(self, partName)
         local f = LPH_JIT_MAX(function()
             local char = Character()
@@ -107,7 +114,7 @@ getgenv().CharacterPart = setmetatable({}, {
     end
 })
 
-getgenv().RecursiveTable = function(obj)
+local function RecursiveTable(obj)
     local result = {
         Instance = obj,
 
@@ -135,9 +142,10 @@ getgenv().RecursiveTable = function(obj)
     if typeof(obj) ~= "Instance" then
         return result
     end
+
     local function classify(child)
         if child:IsA("Folder") then
-            result.Folders[child.Name] = getgenv().RecursiveTable(child)
+            result.Folders[child.Name] = RecursiveTable(child)
 
         elseif child:IsA("RemoteEvent") then
             result.RemoteEvents[child.Name] = child
@@ -171,13 +179,13 @@ getgenv().RecursiveTable = function(obj)
             result.Parts[child.Name] = child
 
         elseif child:IsA("Model") then
-            result.Models[child.Name] = getgenv().RecursiveTable(child)
+            result.Models[child.Name] = RecursiveTable(child)
 
         elseif child:IsA("ScreenGui") then
-            result.ScreenGuis[child.Name] = getgenv().RecursiveTable(child)
+            result.ScreenGuis[child.Name] = RecursiveTable(child)
 
         elseif child:IsA("Frame") then
-            result.Frames[child.Name] = getgenv().RecursiveTable(child)
+            result.Frames[child.Name] = RecursiveTable(child)
 
         elseif child:IsA("TextLabel") then
             result.TextLabels[child.Name] = child
@@ -203,8 +211,9 @@ getgenv().RecursiveTable = function(obj)
         elseif child:IsA("Tool") then
             result.Tools[child.Name] = child
         end
+
         result._connections[child] = child:GetPropertyChangedSignal("Name"):Connect(function()
-            for _, cat in pairs(result) do
+            for _, cat in result do
                 if type(cat) == "table" then
                     cat[child.Name] = nil
                 end
@@ -212,12 +221,15 @@ getgenv().RecursiveTable = function(obj)
             classify(child)
         end)
     end
-    for _, child in ipairs(obj:GetChildren()) do
+
+    for _, child in obj:GetChildren() do
         classify(child)
     end
+
     result._connections.ChildAdded = obj.ChildAdded:Connect(classify)
+
     result._connections.ChildRemoved = obj.ChildRemoved:Connect(function(child)
-        for _, cat in pairs(result) do
+        for _, cat in result do
             if type(cat) == "table" then
                 cat[child.Name] = nil
             end
@@ -227,8 +239,9 @@ getgenv().RecursiveTable = function(obj)
             result._connections[child] = nil
         end
     end)
+
     result._connections.Destroying = obj.Destroying:Connect(function()
-        for _, c in pairs(result._connections) do
+        for _, c in result._connections do
             if typeof(c) == "RBXScriptConnection" then
                 c:Disconnect()
             end
@@ -237,3 +250,14 @@ getgenv().RecursiveTable = function(obj)
 
     return result
 end
+
+return {
+    SafeService = SafeService,
+    GlobalsTable = GlobalsTable,
+    LocalPlayer = LocalPlayer,
+    Character = Character,
+    HumanoidRootPart = HumanoidRootPart,
+    Humanoid = Humanoid,
+    CharacterPart = CharacterPart,
+    RecursiveTable = RecursiveTable
+}
